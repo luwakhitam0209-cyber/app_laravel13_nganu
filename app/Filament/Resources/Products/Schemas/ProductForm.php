@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -12,9 +13,12 @@ class ProductForm
     {
         return $schema
             ->components([
-                TextInput::make('store_id')
+                Select::make('store_id')
+                    ->label('Toko')
+                    ->relationship('store', 'name')
                     ->required()
-                    ->numeric(),
+                    ->searchable()
+                    ->preload(),
 
                 TextInput::make('name')
                     ->required(),
