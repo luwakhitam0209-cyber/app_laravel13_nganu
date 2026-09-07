@@ -13,6 +13,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use App\Filament\Resources\Orders\Pages\ViewOrder;
+use App\Filament\Resources\Orders\Schemas\OrderInfolist;
 
 class OrderResource extends Resource
 {
@@ -21,6 +23,11 @@ class OrderResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'id';
+
+    public static function infolist(Schema $schema): Schema
+{
+    return OrderInfolist::configure($schema);
+}
 
     public static function form(Schema $schema): Schema
     {
@@ -40,11 +47,12 @@ class OrderResource extends Resource
     }
 
     public static function getPages(): array
-    {
-        return [
-            'index' => ListOrders::route('/'),
-            'create' => CreateOrder::route('/create'),
-            'edit' => EditOrder::route('/{record}/edit'),
-        ];
-    }
+{
+    return [
+        'index' => ListOrders::route('/'),
+        'create' => CreateOrder::route('/create'),
+        'view' => ViewOrder::route('/{record}'),
+        'edit' => EditOrder::route('/{record}/edit'),
+    ];
+}
 }
