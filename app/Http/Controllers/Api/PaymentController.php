@@ -18,9 +18,39 @@ class PaymentController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
+
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.product_id' => [
+                'required',
+                'integer',
+                'exists:products,id'
+            ],
+            'items.*.quantity' => [
+                'required',
+                'integer',
+                'min:1'
+            ],
+
+            'shipping_cost' => [
+                'required',
+                'integer',
+                'min:0'
+            ],
+
+            'shipping_destination' => [
+                'required',
+                'string'
+            ],
+
+            'shipping_courier' => [
+                'required',
+                'string'
+            ],
+
+            'shipping_service' => [
+                'required',
+                'string'
+            ],
         ]);
 
         Config::$serverKey = config('midtrans.server_key');
@@ -30,11 +60,18 @@ class PaymentController extends Controller
 
         try {
             $result = DB::transaction(function () use ($validated) {
+
                 $total = 0;
                 $items = [];
 
+                // =========================
+                // HITUNG TOTAL PRODUK
+                // =========================
                 foreach ($validated['items'] as $item) {
-                    $product = Product::findOrFail($item['product_id']);
+
+                    $product = Product::findOrFail(
+                        $item['product_id']
+                    );
 
                     if ($product->stock < $item['quantity']) {
                         abort(
@@ -43,7 +80,10 @@ class PaymentController extends Controller
                         );
                     }
 
-                    $subtotal = $product->price * $item['quantity'];
+                    $subtotal =
+                        $product->price *
+                        $item['quantity'];
+
                     $total += $subtotal;
 
                     $items[] = [
@@ -53,12 +93,27 @@ class PaymentController extends Controller
                     ];
                 }
 
+                // =========================
+                // TAMBAHKAN ONGKIR
+                // =========================
+                $shippingCost =
+                    (int) $validated['shipping_cost'];
+
+                $total += $shippingCost;
+
+                // =========================
+                // BUAT ORDER
+                // =========================
                 $order = Order::create([
                     'user_id' => $validated['user_id'],
                     'status' => 'pending',
                 ]);
 
+                // =========================
+                // ORDER DETAILS
+                // =========================
                 foreach ($items as $item) {
+
                     OrderDetail::create([
                         'order_id' => $order->id,
                         'product_id' => $item['product']->id,
@@ -67,15 +122,22 @@ class PaymentController extends Controller
                     ]);
                 }
 
+                // =========================
+                // PAYMENT
+                // =========================
                 Payment::create([
                     'order_id' => $order->id,
                     'method' => 'midtrans',
                     'amount' => $total,
                 ]);
 
+                // =========================
+                // ITEM MIDTRANS
+                // =========================
                 $midtransItems = [];
 
                 foreach ($items as $item) {
+
                     $midtransItems[] = [
                         'id' => (string) $item['product']->id,
                         'price' => (int) $item['unit_price'],
@@ -84,11 +146,31 @@ class PaymentController extends Controller
                     ];
                 }
 
+                // Tambahkan ongkir sebagai item
+                if ($shippingCost > 0) {
+
+                    $midtransItems[] = [
+                        'id' => 'SHIPPING',
+                        'price' => $shippingCost,
+                        'quantity' => 1,
+                        'name' => 'Ongkos Kirim',
+                    ];
+                }
+
+                // =========================
+                // MIDTRANS PARAMETER
+                // =========================
                 $params = [
                     'transaction_details' => [
-                        'order_id' => 'HOMESTORE-' . $order->id . '-' . time(),
+                        'order_id' =>
+                            'HOMESTORE-' .
+                            $order->id .
+                            '-' .
+                            time(),
+
                         'gross_amount' => $total,
                     ],
+
                     'item_details' => $midtransItems,
                 ];
 
@@ -97,6 +179,7 @@ class PaymentController extends Controller
                 return [
                     'order_id' => $order->id,
                     'total' => $total,
+                    'shipping_cost' => $shippingCost,
                     'snap_token' => $snapToken,
                 ];
             });
@@ -106,7 +189,9 @@ class PaymentController extends Controller
                 'message' => 'Order berhasil dibuat.',
                 'data' => $result,
             ]);
+
         } catch (\Throwable $e) {
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
