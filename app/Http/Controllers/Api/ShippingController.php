@@ -32,29 +32,28 @@ class ShippingController extends Controller
             $response->status()
         );
     }
+public function cost(Request $request)
+{
+    $validated = $request->validate([
+        'destination' => ['required', 'integer'],
+        'weight' => ['required', 'integer', 'min:1'],
+        'courier' => ['required', 'string'],
+    ]);
 
-    public function cost(Request $request)
-    {
-        $validated = $request->validate([
-            'origin' => ['required', 'integer'],
-            'destination' => ['required', 'integer'],
-            'weight' => ['required', 'integer', 'min:1'],
-            'courier' => ['required', 'string'],
+    $response = $this->client()
+        ->asForm()
+        ->post('/calculate/domestic-cost', [
+            'origin' => config('services.rajaongkir.origin_id'),
+            'destination' => $validated['destination'],
+            'weight' => $validated['weight'],
+            'courier' => $validated['courier'],
+            'price' => 'lowest',
         ]);
 
-        $response = $this->client()
-            ->asForm()
-            ->post('/calculate/domestic-cost', [
-                'origin' => $validated['origin'],
-                'destination' => $validated['destination'],
-                'weight' => $validated['weight'],
-                'courier' => $validated['courier'],
-                'price' => 'lowest',
-            ]);
+    return response()->json(
+        $response->json(),
+        $response->status()
+    );
 
-        return response()->json(
-            $response->json(),
-            $response->status()
-        );
     }
 }
