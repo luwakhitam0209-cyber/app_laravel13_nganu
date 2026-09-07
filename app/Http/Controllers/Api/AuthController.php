@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    // =========================
     // REGISTER
+    // =========================
+
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -31,7 +33,11 @@ class AuthController extends Controller
         ], 201);
     }
 
+
+    // =========================
     // LOGIN
+    // =========================
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -41,7 +47,10 @@ class AuthController extends Controller
 
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        if (
+            !$user ||
+            !password_verify($credentials['password'], $user->password)
+        ) {
             throw ValidationException::withMessages([
                 'email' => ['Email atau password salah.'],
             ]);
@@ -53,7 +62,11 @@ class AuthController extends Controller
         ]);
     }
 
+
+    // =========================
     // LOGOUT
+    // =========================
+
     public function logout(Request $request)
     {
         return response()->json([
@@ -61,7 +74,11 @@ class AuthController extends Controller
         ]);
     }
 
-    // USER YANG SEDANG LOGIN
+
+    // =========================
+    // USER LOGIN
+    // =========================
+
     public function user(Request $request)
     {
         return response()->json([
