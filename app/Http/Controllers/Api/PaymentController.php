@@ -104,11 +104,14 @@ class PaymentController extends Controller
                 // =========================
                 // BUAT ORDER
                 // =========================
-                $order = Order::create([
-                    'user_id' => $validated['user_id'],
-                    'status' => 'pending',
-                ]);
-
+               $order = Order::create([
+    'user_id' => $validated['user_id'],
+    'status' => 'pending',
+    'shipping_cost' => $shippingCost,
+    'shipping_destination' => $validated['shipping_destination'],
+    'shipping_courier' => $validated['shipping_courier'],
+    'shipping_service' => $validated['shipping_service'],
+]);
                 // =========================
                 // ORDER DETAILS
                 // =========================
